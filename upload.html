@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>อัปโหลดสลิปค่ายเด็กประถม</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+      body { font-family: 'Sarabun', sans-serif; background-color: #f0f9ff; }
+  </style>
+</head>
+<body class="bg-gray-50 flex flex-col items-center p-6 text-gray-800 min-h-screen justify-center">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border-t-8 border-green-500">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="bg-green-100 text-green-600 p-3 rounded-xl">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900">อัปโหลดสลิปโอนเงิน</h1>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-6 bg-green-50 p-4 rounded-xl border border-green-100">📍 กรุณาเลือกรูปภาพสลิปที่ต้องการอัปโหลด เพื่อให้ทีมงานตรวจสอบความถูกต้องค่ะ</p>
+
+    <input type="file" id="fileInput" accept="image/jpeg, image/png" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200 cursor-pointer mb-6 transition" />
+
+    <div id="previewContainer" class="hidden mb-6 border border-gray-200 rounded-xl p-2 bg-gray-50">
+      <img id="imagePreview" src="" class="max-w-full h-auto rounded-lg mx-auto" />
+    </div>
+
+    <button id="uploadBtn" disabled class="w-full bg-gray-300 text-gray-500 font-bold py-3.5 px-6 rounded-2xl text-lg transition duration-300 shadow-sm">📤 ส่งสลิปโอนเงิน</button>
+
+    <p class="text-xs text-gray-400 mt-5 text-center">(หน้าเว็บจะปิดลงอัตโนมัติเมื่อส่งสำเร็จ)</p>
+  </div>
+
+  <script>
+    // =====================================
+    // ⚙️ ตั้งค่า: เปลี่ยน URL ให้เป็นของค่ายเด็ก
+    // =====================================
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyg2pacCsUyY2Ggt4_2hUNlGb_05fYcO3-RwPG-Qj470uJVDfJ9S6ZBhLiXLM4R1DvV/exec';
+
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const previewContainer = document.getElementById('previewContainer');
+    const imagePreview = document.getElementById('imagePreview');
+
+    fileInput.addEventListener('change', function(e) {
+      if (e.target.files.length > 0) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => imagePreview.src = e.target.result;
+        reader.readAsDataURL(file);
+        previewContainer.classList.remove('hidden');
+        uploadBtn.disabled = false;
+        uploadBtn.className = "w-full bg-green-600 text-white font-bold py-3.5 px-6 rounded-2xl text-lg hover:bg-green-700 transition duration-300 shadow-md";
+      }
+    });
+
+    uploadBtn.addEventListener('click', function() {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Image = e.target.result.split(',')[1];
+        uploadBtn.disabled = true;
+        uploadBtn.innerText = "⏳ กำลังส่งข้อมูล...";
+
+        // ดึง UID ของ LINE จาก URL ที่แนบมากับ Flex Message
+        const userId = new URLSearchParams(window.location.search).get('uid');
+
+        fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({
+            image: base64Image,
+            userId: userId
+          })
+        }).then(() => {
+          uploadBtn.innerText = "✅ ส่งสำเร็จแล้ว!";
+          uploadBtn.className = "w-full bg-blue-600 text-white font-bold py-3.5 px-6 rounded-2xl text-lg transition duration-300";
+          setTimeout(() => { location.href = "https://line.me/R/nv/chat"; }, 1500);
+        }).catch(() => {
+          uploadBtn.innerText = "❌ เกิดข้อผิดพลาด";
+          uploadBtn.className = "w-full bg-red-600 text-white font-bold py-3.5 px-6 rounded-2xl text-lg transition duration-300";
+          uploadBtn.disabled = false;
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
