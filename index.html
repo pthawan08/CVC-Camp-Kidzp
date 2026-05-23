@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียนสมัครค่ายเด็กประถม</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0f9ff; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex justify-center items-center min-h-screen">
+
+    <div class="bg-white p-6 md:p-10 rounded-2xl shadow-xl w-full max-w-lg border-t-8 border-green-500">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">ลงทะเบียนค่ายเด็กประถม</h2>
+        <p class="text-center text-sm text-green-600 font-semibold mb-6" id="profileName">กำลังเชื่อมต่อระบบ LINE...</p>
+
+        <form id="regForm" class="space-y-4">
+            
+            <!-- ส่วนที่ 1: ข้อมูลคริสตจักร -->
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                <h3 class="font-bold text-blue-800 mb-3">📍 ข้อมูลคริสตจักร</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">ภาคพันธกิจ / สังกัดหลัก <span class="text-red-500">*</span></label>
+                        <select id="region" class="mt-1 block w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 bg-white" required>
+                            <option value="">-- เลือกภาคพันธกิจ/สังกัด --</option>
+                        </select>
+                    </div>
+                    
+                    <div id="churchDiv" class="hidden">
+                        <label class="block text-sm font-semibold text-gray-700">คริสตจักร / หน่วย (แขวง) <span class="text-red-500">*</span></label>
+                        <select id="church" class="mt-1 block w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 bg-white"></select>
+                    </div>
+
+                    <div id="otherChurchDiv" class="hidden">
+                        <label class="block text-sm font-semibold text-gray-700">โปรดระบุชื่อคริสตจักร <span class="text-red-500">*</span></label>
+                        <input type="text" id="churchOther" class="mt-1 block w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 placeholder-gray-400" placeholder="พิมพ์ชื่อคริสตจักรของท่าน">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ส่วนที่ 2: ข้อมูลผู้ปกครอง -->
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-4">
+                <h3 class="font-bold text-gray-800 mb-3">👨‍👩‍👧 ข้อมูลผู้ปกครอง</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">ชื่อผู้ปกครองที่เข้าร่วมค่ายด้วย <span class="text-red-500">*</span></label>
+                        <input type="text" id="submitterName" class="mt-1 block w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">เบอร์โทรศัพท์ผู้ปกครอง <span class="text-red-500">*</span></label>
+                        <input type="tel" id="submitterPhone" class="mt-1 block w-full p-2.5 border border-gray-300 rounded-lg focus:ring-green-500" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ส่วนที่ 3: ระบบเพิ่มจำนวนเด็กอัตโนมัติ -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">จำนวนเด็กที่สมัคร <span class="text-red-500">*</span></label>
+                    <div class="flex items-center mt-1">
+                        <button type="button" id="btnMinus" class="bg-gray-200 text-gray-700 hover:bg-gray-300 px-4 py-2.5 rounded-l-lg border border-gray-300 border-r-0 font-bold text-lg transition select-none">-</button>
+                        <input type="number" id="totalMembers" value="1" min="1" class="w-full text-center p-2.5 border border-gray-300 focus:ring-green-500 focus:border-green-500 font-semibold text-gray-800" readonly required>
+                        <button type="button" id="btnPlus" class="bg-gray-200 text-gray-700 hover:bg-gray-300 px-4 py-2.5 rounded-r-lg border border-gray-300 border-l-0 font-bold text-lg transition select-none">+</button>
+                    </div>
+                </div>
+                <div>
+                    <!-- หากค่าค่ายของเด็กไม่ใช่ 350 ให้แก้ราคาที่ตัวแปร PRICE_PER_PERSON ใน Script ด้านล่างครับ -->
+                    <label class="block text-sm font-semibold text-gray-700">ยอดชำระรวม (บาท) <span class="text-red-500">*</span></label>
+                    <input type="number" id="totalAmount" value="350" class="mt-1 block w-full p-2.5 border border-gray-300 rounded-lg bg-green-50 text-green-700 font-bold text-center" readonly required>
+                </div>
+            </div>
+
+            <!-- กล่องข้อมูลเด็ก (จะงอกเพิ่มตามจำนวนที่เลือก) -->
+            <div id="kidsContainer" class="space-y-4 mt-4">
+                <!-- โค้ดเด็กจะถูกแทรกที่นี่ด้วย JavaScript -->
+            </div>
+
+            <button type="submit" id="btnSubmit" class="w-full bg-green-600 text-white font-bold py-3.5 rounded-lg hover:bg-green-700 transition mt-6 disabled:bg-gray-400 shadow-md">
+                บันทึกการลงทะเบียน
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // =====================================
+        // ⚙️ 1. ตั้งค่าที่ต้องเปลี่ยน
+        // =====================================
+        const MY_LIFF_ID = "2010169999-xSbcpk8x"; 
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyg2pacCsUyY2Ggt4_2hUNlGb_05fYcO3-RwPG-Qj470uJVDfJ9S6ZBhLiXLM4R1DvV/exec"; 
+        const PRICE_PER_PERSON = 200; // เปลี่ยนราคาค่ายต่อคนตรงนี้ได้เลย
+        
+        let liffUid = "";
+        
+        // ข้อมูลคริสตจักร (ดึงจากของเดิม)
+        const churchData = {
+            "คริสตจักรแห่งนิมิตพิษณุโลก": ["BeOne", "BeTwo", "RU", "CL", "NU 1", "NU 2", "NU 3", "NewSeason A", "NewSeason B", "NGP A", "NGP B", "NGP C", "V-Gen A1", "V-Gen A2", "V-Gen B1", "V-Gen B2", "V-Gen B3", "Acts A", "Acts B", "Acts C", "Acts D", "เยรูซาเลม1", "เยรูซาเลม2", "Power Eagle 1", "Power Eagle 2", "Power Eagle 3", "Happiness 1", "Happiness 2", "Unity 1  ", "Unity 2"],
+            "ภาคพันธกิจที่ 1 (อ.อำนวย เจริญเรือง)": ["คริสตจักรแห่งนิมิตลำพูน", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตบ้านโฮ่ง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตบ้านธิ", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตเวียงหนองล่อง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตป่าซาง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตทิพเนตร", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตแม่ฮ่องสอน", "คริสตจักรแห่งนิมิตแม่สะเรียง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตขุนยวม", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตสบเมย", "คริสตจักรแห่งนิมิตนครเชียงใหม่", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตนครลำปาง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิตวังเหนือ", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตแม่ทา", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตเมืองปาน", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตลี้", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 2 (อ.มีชัย ว่องวรวิทย์)": ["คริสตจักรแห่งนิมิตเชียงราย", "คริสตจักรแห่งนิมิตแม่สรวย", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตห้วยนากาด", "คริสตจักรแห่งนิมิตเวียงป่าเป้า", "คริสตจักรแห่งนิมิตเชียงคำ", "คริสตจักรแห่งนิมิตพะเยา", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตพะเยา 2", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตน่าน", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตแม่สาย", "ศูนย์สร้างสรรชีวิตแพร่", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 3 (อ.ยศไกร เกล็ดจีน)": ["คริสตจักรแห่งนิมิตบางระกำ", "คริสตจักรแห่งนิมิตพรหมพิราม", "คริสตจักรแห่งนิมิตบางกระทุ่ม", "คริสตจักรแห่งนิมิตวังทอง", "คริสตจักรแห่งนิมิตนครไทย", "คริสตจักรแห่งนิมิตบ้านแยง", "คริสตจักรแห่งนิมิตชาตระการ", "คริสตจักรแห่งนิมิตวัดโบสถ์", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตชุมชุนชาวแพ", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตโตกำแพง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตเขาไร่", "ศูนย์สร้างสรรค์ชีวิตเนินมะปราง", "ศูนย์สร้างสรรค์ชีวิตทรัพย์ไพรวัลย์", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตเขาค้อ (ไฮแลนด์)", "คริสตจักรแห่งนิมิตอุตรดิตถ์", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 4 (อ.วันชัย คำฟู)": ["คริสตจักรแห่งนิมิตนครแม่สอด", "คริสตจักรแห่งนิมิตห้วยกะโหลก", "คริสตจักรแห่งนิมิตนครสวรรค์", "คริสตจักรแห่งนิมิตลาดยาว", "คริสตจักรแห่งนิมิตอุทัยธานี", "คริสตจักรแห่งนิมิตน้ำรอบ", "คริสตจักรแห่งนิมิตลานสัก", "กลุ่มบุกเบิกแห่งนิมิตชัยนาท", "คริสตจักรแห่งนิมิตสุพรรณบุรี", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตพบพระ", "กลุ่มบุกเบิกแห่งนิมิตอุ้มผาง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตหนองบัว", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตวังน้ำขาว", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตบ้านหมี่", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตบางพล้อ", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตบรรพต", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตโกรกพระ", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตตาคลี", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตตากฟ้า", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตชุมตาบง", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตแม่วงก์", "กลุ่มบุกเบิกแห่งนิมิตแม่เปิน", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตอยุธยา", "กลุ่มบุกเบิกแห่งนิมิตแม่ละมาด", "กลุ่มบุกเบิกแห่งนิมิต อ.เมือง ตาก", "กลุ่มบุกเบิกแห่งนิมิตท่าสองยาง", "กลุ่มสร้างสรรค์ชีวิตสว่างอารมภ์", "ศูนย์สร้างสรรค์ชีวิตเมืองอุทัยธานี", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 5 Zone A (อ.ปรเมศวร์ รัตนเวฬุ)": ["คริสตจักรแห่งนิมิต กำแพงเพชร", "คริสตจักรแห่งนิมิต ขาณุวรลักษณ์", "คริสตจักรแห่งนิมิต ไทรพัฒนา", "คริสตจักรแห่งนิมิต เพชรบูรณ์", "คริสตจักรแห่งนิมิต บ้านน้ำร้อน", "คริสตจักรแห่งนิมิต สุโขทัย", "คริสตจักรแห่งนิมิต กงไกรลาศ", "คริสตจักรแห่งนิมิต พิจิตร", "คริสตจักรแห่งนิมิต สามง่าม", "คริสตจักรแห่งนิมิต บึงนารา", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต คลองขลุง", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต สากเหล็ก", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต เขาทราย", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต เข็กน้อย", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต วิเชียรบุรี", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต บ้านแม่ท่าแพ", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต บ้านห้วยหยวก", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิต ห้วยมะนาว", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิต สวรรคโลก", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิต ไผ่ท่าโพธิ์", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 5 Zone B (อ.บวรทรนง จิรทรัพย์เจริญ)": ["คริสตจักรแห่งนิมิตห้วยแย้", "ศูนย์สร้างสรรค์แห่งนิมิตโคราช", "คริสตจักรแห่งนิมิตกลางหมื่น", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตขอนแก่น", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิตอุดรธานี", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิตหนองคาย", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 5 Zone C (อ.อัจจณา ปราณี)": ["คริสตจักรแห่งนิมิต กรุงเทพมหานคร", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต สมุทปราการ", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต กบินทร์บุรี (จ.ปราจีนบุรี)", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต ชลบุรี", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 5 Zone D (อ.กาญจนา นาทศิโรรัตน์)": ["คริสตจักรแห่งนิมิต เกาะสมุย (จ.สุราษฏร์ธานี)", "ศูนย์สร้างสรรค์ชีวิตแห่งนิมิต มาบอำมฤต (จ.ชุมพร)", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิต โป๊ะหมอ (หาดใหญ่)", "กลุ่มสร้างสรรค์ชีวิตแห่งนิมิต ปราณบุรี (ประจวบคีรีขันธ์)", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"],
+            "ภาคพันธกิจที่ 5 Zone E (อ.พัณณิตา บุญย่านยาว)": ["กบบ. แห่งนิมิต สเปน (บาเซโลน่า)", "กบบ. แห่งนิมิต นอร์เวย์ ( ออสโล )", "กสช. แห่งนิมิต เบียล ( สวิตเซอร์แลนด์ )", "กบบ. แห่งนิมิต บาเซิล ( สวิตเซอร์แลนด์ )", "กบบ. แห่งนิมิต ธูน ( สวิตเซอร์แลนด์ )", "คจ. แห่งนิมิต นครหลวงเวียงจันทร์", "คสช. แห่งนิมิต หลัก 32 ( อุดมไซ ลาว )", "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)"]
+        };
+
+        // เริ่มต้นการทำงาน
+        document.addEventListener("DOMContentLoaded", function() {
+            initDropdown();
+            renderKidsForms(); // วาดฟอร์มเด็กคนแรก
+
+            window.addEventListener('load', function() {
+                if (window.liff) { main(); } 
+                else {
+                     document.getElementById("profileName").innerText = "โปรดเปิดลิงก์นี้ผ่านแอป LINE";
+                     document.getElementById("profileName").classList.replace("text-green-600", "text-red-500");
+                }
+            });
+        });
+        
+        // LIFF Login
+        async function main() {
+            try {
+                await liff.init({ liffId: MY_LIFF_ID });
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    liffUid = profile.userId;
+                    document.getElementById("profileName").innerText = "สวัสดีคุณ " + profile.displayName;
+                } else { liff.login(); }
+            } catch (err) {
+                document.getElementById("profileName").innerText = "ไม่สามารถเชื่อมต่อ LINE ได้";
+                document.getElementById("profileName").classList.replace("text-green-600", "text-red-500");
+            }
+        }
+
+        // Dropdown ภาค/คริสตจักร
+        function initDropdown() {
+            const regionSelect = document.getElementById("region");
+            for (const region in churchData) {
+                let opt = document.createElement("option");
+                opt.value = region; opt.textContent = region;
+                regionSelect.appendChild(opt);
+            }
+        }
+
+        document.getElementById("region").addEventListener("change", function() {
+            const region = this.value;
+            const churchDiv = document.getElementById("churchDiv");
+            const churchSelect = document.getElementById("church");
+            const otherChurchDiv = document.getElementById("otherChurchDiv");
+            
+            churchSelect.innerHTML = '<option value="">-- เลือกคริสตจักร/หน่วย --</option>';
+            otherChurchDiv.classList.add("hidden");
+            document.getElementById("churchOther").value = "";
+
+            if (region && churchData[region]) {
+                churchDiv.classList.remove("hidden");
+                churchSelect.required = true;
+                churchData[region].forEach(church => {
+                    let opt = document.createElement("option");
+                    opt.value = church; opt.textContent = church;
+                    churchSelect.appendChild(opt);
+                });
+            } else {
+                churchDiv.classList.add("hidden");
+                churchSelect.required = false;
+            }
+        });
+
+        document.getElementById("church").addEventListener("change", function() {
+            const otherChurchDiv = document.getElementById("otherChurchDiv");
+            const churchOtherInput = document.getElementById("churchOther");
+            if (this.value === "อื่นๆ (กรุณากรอกชื่อคริสตจักรในช่องถัดไป)" || this.value === "อื่นๆ") {
+                otherChurchDiv.classList.remove("hidden");
+                churchOtherInput.required = true;
+            } else {
+                otherChurchDiv.classList.add("hidden");
+                churchOtherInput.required = false;
+                churchOtherInput.value = "";
+            }
+        });
+
+        // =====================================
+        // 2. ระบบบวกลบจำนวน และสร้างฟอร์มเด็กอัตโนมัติ
+        // =====================================
+        const memberInput = document.getElementById("totalMembers");
+        const amountInput = document.getElementById("totalAmount");
+
+        function updateAmountAndForms() {
+            let count = parseInt(memberInput.value) || 1;
+            if (count < 1) { count = 1; memberInput.value = 1; }
+            if (count > 10) { count = 10; memberInput.value = 10; Swal.fire('จำกัดจำนวน','สมัครได้สูงสุด 10 คนต่อ 1 บิลครับ','info'); }
+            
+            amountInput.value = count * PRICE_PER_PERSON;
+            renderKidsForms(count);
+        }
+
+        document.getElementById("btnMinus").addEventListener("click", () => {
+            let current = parseInt(memberInput.value) || 1;
+            if (current > 1) { memberInput.value = current - 1; updateAmountAndForms(); }
+        });
+
+        document.getElementById("btnPlus").addEventListener("click", () => {
+            let current = parseInt(memberInput.value) || 1;
+            if (current < 10) { memberInput.value = current + 1; updateAmountAndForms(); }
+        });
+
+        function renderKidsForms(count = 1) {
+            const container = document.getElementById("kidsContainer");
+            container.innerHTML = ""; // เคลียร์ของเก่า
+
+            for (let i = 1; i <= count; i++) {
+                // สร้าง HTML สำหรับเด็กแต่ละคน
+                const kidHTML = `
+                <div class="bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm relative">
+                    <div class="absolute top-0 left-0 bg-green-500 text-white px-3 py-1 rounded-br-xl rounded-tl-xl text-sm font-bold shadow-sm">
+                        เด็กคนที่ ${i}
+                    </div>
+                    <div class="mt-4 grid grid-cols-3 gap-3">
+                        <div class="col-span-1">
+                            <label class="block text-xs font-semibold text-gray-700">คำนำหน้า <span class="text-red-500">*</span></label>
+                            <select id="prefix_${i}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:ring-green-500" required>
+                                <option value="">เลือก</option>
+                                <option value="เด็กชาย">เด็กชาย</option>
+                                <option value="เด็กหญิง">เด็กหญิง</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-semibold text-gray-700">ชื่อเล่น <span class="text-red-500">*</span></label>
+                            <input type="text" id="nickname_${i}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:ring-green-500" required>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-xs font-semibold text-gray-700">ชื่อ-นามสกุล <span class="text-red-500">*</span></label>
+                        <input type="text" id="fullname_${i}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:ring-green-500" placeholder="ระบุชื่อจริง นามสกุล" required>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700">ระดับชั้น <span class="text-red-500">*</span></label>
+                            <select id="grade_${i}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:ring-green-500" required>
+                                <option value="">เลือกชั้นเรียน</option>
+                                <option value="ป.1">ประถมศึกษาปีที่ 1</option>
+                                <option value="ป.2">ประถมศึกษาปีที่ 2</option>
+                                <option value="ป.3">ประถมศึกษาปีที่ 3</option>
+                                <option value="ป.4">ประถมศึกษาปีที่ 4</option>
+                                <option value="ป.5">ประถมศึกษาปีที่ 5</option>
+                                <option value="ป.6">ประถมศึกษาปีที่ 6</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700">โรคประจำตัว</label>
+                            <input type="text" id="disease_${i}" class="mt-1 block w-full p-2 border border-gray-300 rounded-lg focus:ring-green-500" placeholder="ถ้าไม่มีให้เว้นไว้">
+                        </div>
+                    </div>
+                </div>
+                `;
+                container.innerHTML += kidHTML;
+            }
+        }
+
+        // =====================================
+        // 3. จัดเตรียมข้อมูลและส่งไปให้ GAS
+        // =====================================
+        document.getElementById("regForm").addEventListener("submit", async function(e) {
+            e.preventDefault(); 
+            
+            const btn = document.getElementById("btnSubmit");
+            btn.disabled = true;
+            btn.innerText = "⏳ กำลังบันทึกข้อมูล...";
+
+            // รวบรวมข้อมูลเด็กจากฟอร์มที่สร้างขึ้นมา
+            const kidsData = [];
+            const count = parseInt(memberInput.value) || 1;
+            
+            for (let i = 1; i <= count; i++) {
+                kidsData.push({
+                    prefix: document.getElementById(`prefix_${i}`).value,
+                    fullName: document.getElementById(`fullname_${i}`).value,
+                    nickname: document.getElementById(`nickname_${i}`).value,
+                    grade: document.getElementById(`grade_${i}`).value,
+                    disease: document.getElementById(`disease_${i}`).value || "-"
+                });
+            }
+
+            const selectedRegion = document.getElementById("region").value;
+            const selectedDropdown2 = document.getElementById("church").value;
+
+            // โครงสร้างข้อมูลที่ตรงกับ Code.gs ใหม่
+            const payload = {
+                uid: liffUid,
+                region: selectedRegion,
+                church: (selectedRegion === "คริสตจักรแห่งนิมิตพิษณุโลก") ? "คริสตจักรแห่งนิมิตพิษณุโลก" : selectedDropdown2,
+                unit: (selectedRegion === "คริสตจักรแห่งนิมิตพิษณุโลก") ? selectedDropdown2 : "",
+                churchOther: document.getElementById("churchOther").value,
+                submitterName: document.getElementById("submitterName").value,
+                submitterPhone: document.getElementById("submitterPhone").value,
+                totalMembers: count,
+                totalAmount: amountInput.value,
+                kids: kidsData // แนบ Array เด็กๆ ไปทั้งหมด
+            };
+
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+
+                if (result.result === "success") {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ลงทะเบียนสำเร็จ!',
+                        text: 'รหัสอ้างอิงของคุณคือ: ' + result.regId,
+                        confirmButtonColor: '#16a34a',
+                        confirmButtonText: 'รับทราบ (ปิดหน้าต่าง)',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        try { liff.closeWindow(); } catch(e) {}
+                    });
+                } else { throw new Error(result.message); }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
+                });
+                btn.disabled = false;
+                btn.innerText = "บันทึกการลงทะเบียน";
+            }
+        });
+    </script>
+</body>
+</html>
