@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+  <!-- 🌟 โหลด LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
       body { font-family: 'Sarabun', sans-serif; background-color: #f0f9ff; }
   </style>
@@ -25,7 +27,7 @@
        <p>กรุณาเลือกรูปภาพสลิปที่ต้องการอัปโหลด เพื่อให้ทีมงานตรวจสอบความถูกต้องค่ะ</p>
     </div>
 
-    <!-- ปุ่มเลือกไฟล์แบบใหม่ (กล่องเส้นประ) -->
+    <!-- ปุ่มเลือกไฟล์ -->
     <label for="fileInput" class="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-green-300 rounded-2xl cursor-pointer hover:bg-green-50 transition mb-4">
         <span id="fileName" class="text-green-600 font-semibold text-center">📸 กดตรงนี้เพื่อเลือกรูปสลิป</span>
         <input type="file" id="fileInput" accept="image/jpeg, image/png" class="hidden" />
@@ -39,15 +41,29 @@
     <button id="uploadBtn" disabled class="w-full bg-gray-300 text-gray-500 font-bold py-4 rounded-2xl text-lg transition duration-300 shadow-sm flex justify-center items-center gap-2">
         📤 ส่งสลิปโอนเงิน
     </button>
-
-    <p class="text-xs text-gray-400 mt-4 text-center">(หน้าเว็บจะปิดลงอัตโนมัติเมื่อส่งสำเร็จ)</p>
   </div>
 
   <script>
     // =====================================
-    // ⚠️ นำ URL ของ GAS มาใส่ตรงนี้ครับ
+    // ⚙️ ตั้งค่า (ผมใส่ให้ตรงกับของคุณแล้ว)
     // =====================================
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxb7r43zuAzLrjFQi4kr22hP8ucghVF6ESht1oNHYqfvjoltwqXocGD-UK86CKZnF4S/exec';
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzgenzmHqRKakKQWIrrsIjXb-0BK0EutIEhk2nuPGKcuzW8dOwRzV7ENnXizObHvZ9E/exec';
+    const MY_LIFF_ID = '2010169999-c4njRWv3'; 
+    
+    let currentUserId = "";
+
+    // 🌟 ระบบดึง LINE ID อัตโนมัติ ป้องกัน Error ข้อมูลไม่เข้า Sheet
+    document.addEventListener("DOMContentLoaded", function() {
+        liff.init({ liffId: MY_LIFF_ID }).then(() => {
+            if (liff.isLoggedIn()) {
+                liff.getProfile().then(profile => {
+                    currentUserId = profile.userId;
+                });
+            } else {
+                liff.login();
+            }
+        }).catch(err => console.error(err));
+    });
 
     const fileInput = document.getElementById('fileInput');
     const fileNameDisplay = document.getElementById('fileName');
@@ -58,7 +74,7 @@
     fileInput.addEventListener('change', function(e) {
       if (e.target.files.length > 0) {
         const file = e.target.files[0];
-        fileNameDisplay.innerText = "✅ เลือกไฟล์: " + file.name;
+        fileNameDisplay.innerText = "✅ เลือกไฟล์แล้ว";
         fileNameDisplay.classList.replace('text-green-600', 'text-gray-700');
         
         const reader = new FileReader();
@@ -68,7 +84,6 @@
         };
         reader.readAsDataURL(file);
         
-        // ปลดล็อกปุ่ม
         uploadBtn.disabled = false;
         uploadBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-2xl text-lg hover:bg-green-700 transition duration-300 shadow-md flex justify-center items-center gap-2";
       }
@@ -78,44 +93,39 @@
       const file = fileInput.files[0];
       if (!file) return;
 
+      // 🛑 กันเหนียว: เช็คว่าหา LINE ID เจอไหมก่อนส่ง
+      if (!currentUserId) {
+          Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูล LINE ของคุณ กรุณาเปิดผ่านแอป LINE เท่านั้นค่ะ', 'error');
+          return;
+      }
+
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64Image = e.target.result.split(',')[1];
         
         uploadBtn.disabled = true;
-        uploadBtn.innerHTML = "⏳ กำลังส่งข้อมูล...";
+        uploadBtn.innerHTML = "⏳ กำลังบันทึกและตรวจสอบ...";
         uploadBtn.className = "w-full bg-yellow-500 text-white font-bold py-4 rounded-2xl text-lg transition duration-300 shadow-md flex justify-center items-center gap-2";
-
-        const userId = new URLSearchParams(window.location.search).get('uid');
 
         fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           mode: 'no-cors',
           body: JSON.stringify({
             image: base64Image,
-            userId: userId
+            userId: currentUserId // ส่ง LINE ID ไปด้วย
           })
         }).then(() => {
           Swal.fire({
               icon: 'success',
               title: 'ส่งสลิปสำเร็จ!',
               text: 'รอแอดมินตรวจสอบสักครู่นะคะ',
-              showConfirmButton: false,
-              timer: 2000
+              confirmButtonColor: '#16a34a',
+              confirmButtonText: 'ปิดหน้าต่าง'
           }).then(() => {
-              try {
-                  // ปิดหน้า LIFF กลับไปที่แชท
-                  liff.closeWindow();
-              } catch(err) {
-                  location.href = "https://line.me/R/nv/chat";
-              }
+              liff.closeWindow(); // ปิดหน้าเว็บอัตโนมัติ
           });
         }).catch(() => {
-          Swal.fire({
-              icon: 'error',
-              title: 'เกิดข้อผิดพลาด',
-              text: 'ไม่สามารถส่งสลิปได้ โปรดลองใหม่อีกครั้ง'
-          });
+          Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถส่งสลิปได้ โปรดลองใหม่อีกครั้ง', 'error');
           uploadBtn.innerHTML = "📤 ส่งสลิปโอนเงิน";
           uploadBtn.className = "w-full bg-green-600 text-white font-bold py-4 rounded-2xl text-lg hover:bg-green-700 transition duration-300 shadow-md flex justify-center items-center gap-2";
           uploadBtn.disabled = false;
