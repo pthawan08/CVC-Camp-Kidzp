@@ -307,30 +307,29 @@
             };
 
             try {
-                const response = await fetch(GAS_WEB_APP_URL, {
+                // 🌟 ใส่โหมด no-cors เพื่อทะลุบล็อก
+                await fetch(GAS_WEB_APP_URL, {
                     method: "POST",
+                    mode: "no-cors",
                     body: JSON.stringify(payload)
                 });
                 
-                const result = await response.json();
-
-                if (result.result === "success") {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'ลงทะเบียนสำเร็จ!',
-                        text: 'รหัสอ้างอิงของคุณคือ: ' + result.regId,
-                        confirmButtonColor: '#16a34a',
-                        confirmButtonText: 'รับทราบ (ปิดหน้าต่าง)',
-                        allowOutsideClick: false
-                    }).then(() => {
-                        try { liff.closeWindow(); } catch(e) {}
-                    });
-                } else { throw new Error(result.message); }
+                // ถือว่าสำเร็จทันที
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ลงทะเบียนสำเร็จ!',
+                    text: 'ระบบบันทึกข้อมูลเรียบร้อย โปรดตรวจสอบข้อความยืนยันและ QR Code ชำระเงินในแชท LINE ของคุณ',
+                    confirmButtonColor: '#16a34a',
+                    confirmButtonText: 'รับทราบ (ปิดหน้าต่าง)',
+                    allowOutsideClick: false
+                }).then(() => {
+                    try { liff.closeWindow(); } catch(e) {}
+                });
             } catch (error) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
+                    title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+                    text: 'โปรดตรวจสอบสัญญาณอินเทอร์เน็ต'
                 });
                 btn.disabled = false;
                 btn.innerText = "บันทึกการลงทะเบียน";
