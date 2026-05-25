@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตรวจสอบสถานะลงทะเบียน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0f9ff; }
+        .loader { border-top-color: #16a34a; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center min-h-screen">
+
+    <div class="bg-white p-6 rounded-3xl shadow-lg w-full max-w-md border-t-8 border-green-500 relative">
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">ตรวจสอบสถานะ</h2>
+            <p class="text-sm text-gray-500 mt-1" id="profileName">กำลังเชื่อมต่อ LINE...</p>
+        </div>
+
+        <!-- ตัวโหลดข้อมูล -->
+        <div id="loading" class="flex flex-col items-center justify-center py-10">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+            <p class="text-gray-500 font-semibold">กำลังดึงข้อมูลของคุณ...</p>
+        </div>
+
+        <!-- พื้นที่แสดงข้อมูล -->
+        <div id="dataContainer" class="hidden space-y-4">
+            <!-- ข้อมูลเด็กจะถูกสร้างตรงนี้ -->
+        </div>
+
+        <!-- กรณีไม่พบข้อมูล -->
+        <div id="noData" class="hidden flex flex-col items-center justify-center py-8 text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p class="font-semibold text-lg">ไม่พบข้อมูลการลงทะเบียน</p>
+            <p class="text-sm mt-1">คุณยังไม่ได้ลงทะเบียน หรือทำรายการไม่สำเร็จ</p>
+        </div>
+
+        <button onclick="liff.closeWindow()" class="mt-8 w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition">
+            ปิดหน้าต่างนี้
+        </button>
+    </div>
+
+    <script>
+        // =====================================
+        // ⚙️ ตั้งค่า (ใส่ URL ของคุณให้ถูกต้อง)
+        // =====================================
+        const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxb7r43zuAzLrjFQi4kr22hP8ucghVF6ESht1oNHYqfvjoltwqXocGD-UK86CKZnF4S/exec';
+        
+        // ⚠️ สำคัญ: สร้าง LIFF ID อันใหม่สำหรับหน้า check.html แล้วเอามาใส่ตรงนี้
+        const MY_LIFF_ID = '2010169999-8xlek8V9'; 
+
+        document.addEventListener("DOMContentLoaded", function() {
+            liff.init({ liffId: MY_LIFF_ID }).then(() => {
+                if (liff.isLoggedIn()) {
+                    liff.getProfile().then(profile => {
+                        document.getElementById('profileName').innerText = "ข้อมูลของ: " + profile.displayName;
+                        fetchUserData(profile.userId);
+                    });
+                } else { liff.login(); }
+            }).catch(err => {
+                document.getElementById('profileName').innerText = "เชื่อมต่อล้มเหลว";
+                document.getElementById('loading').classList.add('hidden');
+            });
+        });
+
+        function fetchUserData(userId) {
+            // ดึงข้อมูลด้วย Method GET
+            fetch(GAS_WEB_APP_URL + '?action=checkData&userId=' + userId)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').classList.add('hidden');
+                
+                if (data.result === 'success' && data.data.length > 0) {
+                    renderCards(data.data);
+                } else {
+                    document.getElementById('noData').classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('noData').classList.remove('hidden');
+                document.getElementById('noData').innerHTML = "<p class='text-red-500'>เกิดข้อผิดพลาดในการดึงข้อมูล</p>";
+            });
+        }
+
+        function renderCards(kids) {
+            const container = document.getElementById('dataContainer');
+            container.innerHTML = '';
+            
+            kids.forEach((kid, index) => {
+                // กำหนดสีของสถานะ
+                let statusBg = "bg-gray-100 text-gray-700";
+                if (kid.status === "รอแนบสลิป") statusBg = "bg-orange-100 text-orange-700";
+                if (kid.status === "รอตรวจสอบ") statusBg = "bg-blue-100 text-blue-700";
+                if (kid.status === "ยืนยันแล้ว") statusBg = "bg-green-100 text-green-700";
+
+                const cardHTML = `
+                <div class="p-4 rounded-2xl border border-gray-100 shadow-sm bg-gray-50 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full ${statusBg.split(' ')[0]}"></div>
+                    <div class="flex justify-between items-start mb-2 pl-2">
+                        <div>
+                            <p class="text-xs text-gray-400 font-semibold mb-1">รหัสอ้างอิง: ${kid.regId}</p>
+                            <h3 class="font-bold text-gray-800 text-lg">น้อง${kid.nickname}</h3>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded-md ${statusBg}">${kid.status}</span>
+                    </div>
+                    <div class="pl-2 mt-2">
+                        <p class="text-sm text-gray-600"><span class="font-semibold text-gray-500">ชื่อจริง:</span> ${kid.fullName}</p>
+                        <p class="text-sm text-gray-600"><span class="font-semibold text-gray-500">ระดับชั้น:</span> ${kid.grade}</p>
+                    </div>
+                </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+            container.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
